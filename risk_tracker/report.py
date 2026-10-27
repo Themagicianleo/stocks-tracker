@@ -60,7 +60,9 @@ def render_markdown(res: dict, cfg: dict, charts: dict[str, str] | None = None) 
     md.append("\n## Your positions\n")
     pos = res["positions"]
     if pos.empty:
-        md.append(f"No positions found in `{cfg['paths']['positions']}`.")
+        md.append(f"No journal yet. Add your trades to `{cfg['paths']['positions']}` (or, on GitHub, the "
+                  "`POSITIONS_CSV` secret together with `SITE_PASSWORD`) to see your P/L, loss-limit "
+                  "distance and the 'What this means for you' section.")
     else:
         ok = pos[pos["error"] == ""] if "error" in pos else pos
         rows = []

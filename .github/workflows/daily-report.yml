@@ -48,10 +48,20 @@ jobs:
             echo "::warning::No POSITIONS_CSV secret set; the report will have no journal section."
           fi
 
-      - name: Build report and encrypted web page
+      - name: Build report and web page
         env:
           SITE_PASSWORD: ${{ secrets.SITE_PASSWORD }}
-        run: python -m risk_tracker report --site site
+          HAS_JOURNAL: ${{ secrets.POSITIONS_CSV != '' }}
+        run: |
+          if [ -n "$SITE_PASSWORD" ]; then
+            python -m risk_tracker report --site site
+          elif [ "$HAS_JOURNAL" = "true" ]; then
+            echo "::error::POSITIONS_CSV is set but SITE_PASSWORD is not. Add SITE_PASSWORD so your journal is not published unlocked."
+            exit 1
+          else
+            echo "::notice::No secrets set: publishing a market-only page without a password."
+            python -m risk_tracker report --site site --public
+          fi
 
       - uses: actions/upload-pages-artifact@v3
         with:

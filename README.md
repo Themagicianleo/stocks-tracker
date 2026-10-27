@@ -123,6 +123,8 @@ needed.
 - The published file contains only scrambled data. Your browser decrypts it locally after you type
   the password; the password never leaves your device.
 - Your journal is stored as an encrypted GitHub **secret**, never as a file in the repo.
+- Both secrets are optional. With neither set, you get a market-only page with no lock, since there
+  is nothing private on it.
 - Use a long passphrase (at least 12 characters; 4-5 random words is good). Anyone can download the
   encrypted page and try to guess it offline.
 
@@ -130,13 +132,23 @@ needed.
 1. Create a GitHub account. Create a new repository (Public is fine; Private needs a paid plan for
    Pages) and push this project to it:
    ```bash
-   git remote add origin https://github.com/<you>/stock-risk-tracker.git
+   git remote add origin https://github.com/<you>/stocks-tracker.git
    git push -u origin main
    ```
-2. In the repo, go to **Settings → Secrets and variables → Actions → New repository secret** and add:
-   - `SITE_PASSWORD`: your passphrase.
+2. *(Optional, can be done later)* In the repo, go to **Settings → Secrets and variables → Actions →
+   New repository secret** and add:
+   - `SITE_PASSWORD`: your passphrase. It locks the page.
    - `POSITIONS_CSV`: paste the full contents of your `positions.csv`, including the header line.
      Update this secret whenever you trade.
+
+   What happens with each combination:
+
+   | Secrets set | What gets published |
+   |---|---|
+   | Neither | A **market-only** page with no lock: volatility, earnings, ranges, backtest, honesty check. No personal data. |
+   | Both | The full page, including your positions and "What this means for you", **encrypted**. |
+   | Password only | The market-only page, encrypted. |
+   | Journal only | **Nothing.** The run stops with an error, so your holdings are never published unlocked. |
 3. Go to **Settings → Pages → Build and deployment → Source**, choose **GitHub Actions**.
 4. Go to **Actions → Daily risk report → Run workflow** to build it now. After that it runs on its
    own each weekday.

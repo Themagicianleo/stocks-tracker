@@ -59,12 +59,24 @@ def _make_charts(res: dict, cfg: dict, charts_dir: Path) -> dict[str, Path]:
     return charts
 
 
-def _site_password(args) -> tuple[str | None, str | None]:
+def _has_journal(cfg: dict) -> bool:
+    from .journal import load_positions
+
+    try:
+        return len(load_positions(cfg["paths"]["positions"])) > 0
+    except ValueError:
+        return True  # unreadable journal: assume it holds private data
+
+
+def _site_password(cfg: dict, args) -> tuple[str | None, str | None]:
     """(password, error message)."""
     password = os.environ.get(args.password_env) or None
     if password is None and not args.public:
         return None, (f"--site needs a password in the {args.password_env} environment variable "
-                      "(or --public to publish WITHOUT encryption; your journal would be readable by anyone).")
+                      "(or --public to publish a market-only page with no journal).")
+    if password is None and _has_journal(cfg):
+        return None, (f"Refusing to publish an unencrypted page: {cfg['paths']['positions']} contains your "
+                      f"positions. Set {args.password_env}, or remove the journal for a market-only page.")
     if password is not None and len(password) < 12:
         return None, "Site password must be at least 12 characters: the encrypted page is public."
     return password, None
@@ -76,7 +88,7 @@ def cmd_report(cfg: dict, args) -> int:
 
     password = None
     if args.site:
-        password, problem = _site_password(args)
+        password, problem = _site_password(cfg, args)
         if problem:
             print(problem, file=sys.stderr)
             return 2
@@ -129,7 +141,7 @@ def build_parser() -> argparse.ArgumentParser:
     r.add_argument("--password-env", default="SITE_PASSWORD",
                    help="environment variable holding the web page password (default SITE_PASSWORD)")
     r.add_argument("--public", action="store_true",
-                   help="allow building the web page WITHOUT a password (not recommended)")
+                   help="build the web page WITHOUT a password; only allowed when there is no journal")
     sub.add_parser("fetch", parents=[common], help="download / refresh cached data only")
     return p
 

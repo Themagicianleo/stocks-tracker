@@ -71,3 +71,15 @@ def test_cli_builds_encrypted_site(tmp_path, monkeypatch):
     body = decrypt(_payload(html), "a-long-password-123")
     assert "private-reason-xyz" in body and "What this means for you" in body
     assert "data:image/png;base64," in body           # charts travel inside the encrypted page
+
+
+def test_public_site_allowed_only_without_journal(tmp_path, monkeypatch):
+    monkeypatch.delenv("SITE_PASSWORD", raising=False)
+    cfg = _cfg(tmp_path)                                  # writes a journal with a trade
+    args = ["report", "--no-calibration", "--config", cfg, "--site", str(tmp_path / "s"), "--public", "--demo"]
+    assert main(args) == 2                                # journal present -> refuse
+    assert not (tmp_path / "s" / "index.html").exists()
+    (tmp_path / "positions.csv").unlink()
+    assert main(args) == 0                                # market-only page is fine
+    html = (tmp_path / "s" / "index.html").read_text()
+    assert "const PAYLOAD = null;" in html and "Volatility" in html
