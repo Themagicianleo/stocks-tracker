@@ -1,0 +1,8 @@
+data/cache/
+reports/
+charts/
+site/
+positions.csv
+__pycache__/
+*.pyc
+.pytest_cache/

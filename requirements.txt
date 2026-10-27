@@ -1,0 +1,8 @@
+pandas>=2.0
+numpy>=1.24
+matplotlib>=3.7
+yfinance>=0.2.40
+pyyaml>=6.0
+markdown>=3.5
+cryptography>=42
+pytest>=7.0

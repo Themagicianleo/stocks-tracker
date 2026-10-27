@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "stock-risk-tracker"
+version = "0.1.0"
+description = "Educational risk monitor for a few US holdings. Describes volatility and ranges; never predicts or signals."
+requires-python = ">=3.11"
+dependencies = ["pandas>=2.0", "numpy>=1.24", "matplotlib>=3.7", "yfinance>=0.2.40", "pyyaml>=6.0", "markdown>=3.5", "cryptography>=42"]
+
+[project.optional-dependencies]
+test = ["pytest>=7.0"]
+
+[project.scripts]
+stock-risk-tracker = "risk_tracker.cli:main"
+
+[tool.setuptools]
+packages = ["risk_tracker"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

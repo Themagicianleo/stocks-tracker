@@ -1,0 +1,34 @@
+# stock-risk-tracker configuration
+tickers: [VT, AAPL]          # US tickers to monitor
+benchmark: VT                # positions are compared against simply holding this
+fx_ticker: USDSGD=X          # used to show P/L in SGD
+history_years: 10            # how much daily history to download
+loss_limit_pct: -15          # your loss limit, % from buy price (negative number)
+fee_per_trade_usd: 0.99      # flat broker fee per trade
+alert_threshold_sd: 2.0      # flag daily moves larger than this many standard deviations
+earnings_tickers: [AAPL]     # tickers with company earnings (ETFs like VT have none)
+earnings_alert_days: 7
+loss_limit_warning_pct: 3    # warn when price is within this % of the loss limit
+
+bands:
+  horizon_days: 21           # ~1 month of trading days
+  levels: [0.5, 0.8, 0.95]
+  n_sims: 10000
+  seed: 42
+
+backtest:
+  horizon_days: 63           # ~3 months
+  position_usd: 1000         # notional size used to turn flat fees into %
+
+calibration:
+  min_history_days: 252      # need at least 1 year of data before building a band
+  step_days: 5               # evaluate every 5th trading day
+  n_sims: 2000
+
+paths:
+  cache_dir: data/cache
+  positions: positions.csv
+  reports_dir: reports
+  charts_dir: charts
+
+cache_max_age_hours: 12

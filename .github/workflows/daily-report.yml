@@ -1,0 +1,68 @@
+name: Daily risk report
+
+on:
+  schedule:
+    # 22:17 UTC Mon-Fri = 06:17 Singapore time Tue-Sat, after the US market close
+    - cron: "17 22 * * 1-5"
+  workflow_dispatch: {}   # "Run workflow" button for a manual refresh
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Run tests
+        run: python -m pytest -q
+
+      - name: Restore price cache
+        uses: actions/cache@v4
+        with:
+          path: data/cache
+          key: prices-${{ github.run_id }}
+          restore-keys: prices-
+
+      - name: Write journal from secret
+        env:
+          POSITIONS_CSV: ${{ secrets.POSITIONS_CSV }}
+        run: |
+          if [ -n "$POSITIONS_CSV" ]; then
+            printf '%s\n' "$POSITIONS_CSV" > positions.csv
+          else
+            echo "::warning::No POSITIONS_CSV secret set; the report will have no journal section."
+          fi
+
+      - name: Build report and encrypted web page
+        env:
+          SITE_PASSWORD: ${{ secrets.SITE_PASSWORD }}
+        run: python -m risk_tracker report --site site
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
