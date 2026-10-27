@@ -117,6 +117,14 @@ A free GitHub Actions job builds the report every weekday at about 06:15 Singapo
 close, and publishes it at `https://<your-username>.github.io/<repo-name>/`. No server or domain is
 needed.
 
+**Look.** The page uses the same Liquid Glass theme as the other web apps (`risk_tracker/glass.css`, copied unchanged from msfs-buddy's `src/shared/glass.css`). It has four tabs:
+- **Today:** summary, alerts and "what this means for you"
+- **Holdings:** each purchase against your own rules
+- **Market:** ranges, volatility and earnings
+- **History:** the loss-limit test and the honesty check
+
+It follows your device's light or dark mode, and honours Reduce Transparency.
+
 **Privacy.**
 - Free GitHub Pages sites are public, so the page is **encrypted**: AES-256-GCM, with the key derived
   from your password by PBKDF2-SHA256 with 600,000 iterations.

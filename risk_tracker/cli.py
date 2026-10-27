@@ -68,6 +68,28 @@ def _has_journal(cfg: dict) -> bool:
         return True  # unreadable journal: assume it holds private data
 
 
+def _make_web_charts(res: dict, cfg: dict, out_dir: Path) -> dict[str, tuple[str, str]]:
+    """Phone-sized charts, one light and one dark version each, as data URIs."""
+    from .charts import calibration_chart, price_with_bands, rolling_vol_chart
+    from .web import png_data_uri
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    charts: dict[str, tuple[str, str]] = {}
+
+    def both(key: str, draw) -> None:
+        charts[key] = tuple(png_data_uri(draw(theme, out_dir / f"{key}_{theme}.png")) for theme in ("light", "dark"))
+
+    for t, d in res["tickers"].items():
+        close, adj = res["prices"][t]["close"], res["prices"][t]["adj_close"]
+        both(f"{t}_bands", lambda th, p: price_with_bands(t, close, d["bands"], cfg["bands"]["horizon_days"], p,
+                                                            theme=th, compact=True))
+        both(f"{t}_vol", lambda th, p: rolling_vol_chart(t, adj, p, theme=th, compact=True))
+        if "calibration" in d and not d["calibration"]["summary"].empty:
+            summ = {t: d["calibration"]["summary"]}
+            both(f"{t}_calibration", lambda th, p: calibration_chart(summ, p, theme=th, compact=True))
+    return charts
+
+
 def _site_password(cfg: dict, args) -> tuple[str | None, str | None]:
     """(password, error message)."""
     password = os.environ.get(args.password_env) or None
@@ -112,14 +134,13 @@ def cmd_report(cfg: dict, args) -> int:
         pd.concat(frames).to_csv(reports_dir / f"{stamp}-walk-forward.csv")
     print(terminal_summary(res, cfg, report_path))
     if args.site:
-        from .web import build_site, png_data_uri
+        from .web import build_site, render_views
 
-        embedded = {k: png_data_uri(v) for k, v in charts.items()}
+        web_charts = {} if args.no_charts else _make_web_charts(res, cfg, Path(cfg["paths"]["charts_dir"]) / stamp / "web")
         last = max(d["vol"]["last_date"] for d in res["tickers"].values())
         now_sg = datetime.now(ZoneInfo("Asia/Singapore"))
-        label = (f"Updated {now_sg:%d %b %Y, %H:%M} SGT \u00b7 prices up to {last:%d %b %Y}"
-                 + (" \u00b7 DEMO DATA" if res["demo"] else ""))
-        page = build_site(render_markdown(res, cfg, embedded), args.site, password, label)
+        label = f"Updated {now_sg:%d %b, %H:%M} SGT \u00b7 prices to {last:%d %b %Y}"
+        page = build_site(render_views(res, cfg, web_charts, label), args.site, password, res["demo"])
         print(f"\nWeb page written to {page} ({'encrypted' if password else 'NOT encrypted'})")
     return 0
 

@@ -26,21 +26,27 @@ def _payload(html):
 
 
 def test_site_hides_content_and_ships_phone_files(tmp_path):
-    md = "# R\n\n## What this means for you\n\n- My secret thesis\n\n| a | b |\n|---|---|\n| 1 | 2 |\n"
-    page = build_site(md, tmp_path, "a-long-password-123", "Updated today")
+    views = '<div class="view" data-view="today"><p>My secret thesis</p></div>'
+    page = build_site(views, tmp_path, "a-long-password-123")
     html = page.read_text()
     assert "secret thesis" not in html
     assert "not financial advice" in html            # disclaimer visible even while locked
-    body = decrypt(_payload(html), "a-long-password-123")
-    assert "secret thesis" in body and "<table>" in body
+    assert "backdrop-filter" in html and 'class="ambient"' in html   # shared Liquid Glass theme
+    assert decrypt(_payload(html), "a-long-password-123") == views
     for f in ("manifest.webmanifest", "icon-180.png", "icon-512.png", ".nojekyll"):
         assert (tmp_path / f).exists()
     assert 'name="apple-mobile-web-app-capable"' in html
 
 
 def test_public_site_is_plain(tmp_path):
-    html = build_site("# R\n\nhello", tmp_path, None, "x").read_text()
+    html = build_site('<div class="view" data-view="today">hello</div>', tmp_path, None).read_text()
     assert "hello" in html and "const PAYLOAD = null;" in html
+
+
+def test_web_formatting_never_shows_negative_zero():
+    from risk_tracker.web import _move, _tone
+    assert _move(-0.00001) == "0.0%" and _tone(-0.00001) == ""
+    assert _move(-0.02) == "-2.0%" and _tone(-0.02) == "danger"
 
 
 def _cfg(tmp_path):
@@ -69,8 +75,9 @@ def test_cli_builds_encrypted_site(tmp_path, monkeypatch):
     html = (tmp_path / "s" / "index.html").read_text()
     assert "private-reason-xyz" not in html
     body = decrypt(_payload(html), "a-long-password-123")
-    assert "private-reason-xyz" in body and "What this means for you" in body
-    assert "data:image/png;base64," in body           # charts travel inside the encrypted page
+    assert "private-reason-xyz" in body and "Your money today" in body
+    assert {f'data-view="{v}"' in body for v in ("today", "holdings", "market", "history")} == {True}
+    assert body.count("data:image/png;base64,") >= 4  # light + dark charts travel inside the encrypted page
 
 
 def test_public_site_allowed_only_without_journal(tmp_path, monkeypatch):
@@ -82,4 +89,4 @@ def test_public_site_allowed_only_without_journal(tmp_path, monkeypatch):
     (tmp_path / "positions.csv").unlink()
     assert main(args) == 0                                # market-only page is fine
     html = (tmp_path / "s" / "index.html").read_text()
-    assert "const PAYLOAD = null;" in html and "Volatility" in html
+    assert "const PAYLOAD = null;" in html and "volatility" in html and "No journal yet" in html

@@ -18,5 +18,8 @@ stock-risk-tracker = "risk_tracker.cli:main"
 [tool.setuptools]
 packages = ["risk_tracker"]
 
+[tool.setuptools.package-data]
+risk_tracker = ["*.css"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
